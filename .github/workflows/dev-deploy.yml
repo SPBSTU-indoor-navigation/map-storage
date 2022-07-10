@@ -20,8 +20,7 @@ jobs:
                   password: ${{ secrets.PASSWORD }}
                   port: ${{ secrets.PORT }}
                   script: |
-                      su web
-                      cd /home/web/web/polymap/dev/map-storage
+                      cd /home/${{ secrets.USERNAME }}/web/polymap/dev/map-storage
                       git reset --hard @
                       git pull
                       npm i
