@@ -20,7 +20,7 @@ async function Start() {
     await mongoose.connect(config.get('mongo-URL-serve'))
 
     app.listen({ port }, () => {
-      console.log(`App listening at http://localhost:${port}`)
+      console.log(`App listening at http://localhost:${port}. Env ${process.env.NODE_ENV}`)
     })
   }
   catch (e) {
