@@ -1,0 +1,30 @@
+{
+  "name": "map-storage",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "serve": "cross-env NODE_ENV=development nodemon app/index.js",
+    "start": "cross-env NODE_ENV=production node app/index.js",
+    "dev": "cross-env NODE_ENV=dev node app/index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/cors": "^8.0.0",
+    "config": "^3.3.7",
+    "cors": "^2.8.5",
+    "cross-env": "^7.0.3",
+    "express": "^4.18.1",
+    "express-validator": "^6.14.2",
+    "fastify": "^4.2.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^6.4.2",
+    "node-gzip": "^1.1.2",
+    "nodemon": "^2.0.18"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.18"
+  }
+}

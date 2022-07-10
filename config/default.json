@@ -1,0 +1,7 @@
+{
+  "appPort": 11000,
+  "cache-timeout": 10,
+  "mongo-URL-serve": "",
+  "authorization": "",
+  "token-key": ""
+}
