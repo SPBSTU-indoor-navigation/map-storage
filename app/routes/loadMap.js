@@ -6,11 +6,17 @@ import config from 'config'
 const cacheTimeout = config.get('cache-timeout') || 60
 let ceche = {}
 
-const sendGziped = (res, data) => {
+function sendGziped(res, data) {
   res
     .header("Content-Type", "application/json")
     .header("Content-Encoding", "gzip")
     .send(data)
+}
+
+function sendMapNotFound(res, mapID) {
+  res
+    .code(404)
+    .send(`Map with id ${mapID} not found`)
 }
 
 /**
@@ -19,64 +25,68 @@ const sendGziped = (res, data) => {
 export default async function routes(fastify) {
   fastify.get('/map/:id', async (req, res) => {
     const mapID = req.params.id
+    let cachedMap = ceche[mapID]
 
-    if (ceche[mapID]?.loading) { await ceche[mapID].loading }
+    if (!cachedMap) {
+      cachedMap = ceche[mapID] = {
+        async load() {
+          if (!this.loading) {
+            this.loading = new Promise(async (resolve, reject) => {
+              const delta = (Date.now() - (this.time || 0)) / 1000
 
-    const cachedMap = ceche[mapID]
-    const cachedMapTime = cachedMap?.time || 0
-    const delta = (Date.now() - cachedMapTime) / 1000
-    var cacheLoadingPromise = {}
+              if (this.map) {
+                if (delta < cacheTimeout) {
+                  return resolve(this.map)
+                }
 
-    if (cachedMap) {
-      if (delta < cacheTimeout) {
-        return sendGziped(res, cachedMap.map)
-      }
+                const mapVersion = await Map.findOne({ mapID: mapID }, { __v: true })
 
-      cachedMap.loading = new Promise((resolve, reject) => cacheLoadingPromise = { resolve, reject })
-      const mapVersion = await Map.findOne({ mapID: mapID }, { __v: true })
+                if (!mapVersion) {
+                  console.warn(`Map "${mapID}" not found in monogoDB, return from cache`)
+                  this.time = Date.now()
+                  return resolve(this.map)
+                }
 
-      if (mapVersion.__v == cachedMap.__v) {
-        cachedMap.time = Date.now()
-        cachedMap.loading = null
-        cacheLoadingPromise.resolve()
-        return sendGziped(res, cachedMap.map)
+                if (this.version === mapVersion.__v) {
+                  this.time = Date.now()
+                  return resolve(this.map)
+                }
+
+              }
+
+              if (!this.map && delta < cacheTimeout) {
+                return resolve(null)
+              }
+
+              const map = await Map.findOne({ mapID: mapID })
+
+              this.map = map ? await gzip(Buffer.from(JSON.stringify(map))) : null
+              this.time = Date.now()
+
+              if (!map) {
+                return resolve(null)
+              }
+
+              this.version = map.__v
+              resolve(this.map);
+            })
+          }
+
+          const res = await this.loading
+          this.loading = undefined
+          return res
+        }
       }
     }
 
 
-
-    var loadingPromise = {}
-
-    ceche[mapID] = {
-      loading: new Promise((resolve, reject) => loadingPromise = { resolve, reject })
-    }
-
-    console.log("> Loading map " + mapID);
-    const map = await Map.findOne({ mapID: mapID })
-    console.log("< Loading map " + mapID);
+    const map = await cachedMap.load()
 
     if (!map) {
-      loadingPromise.reject()
-      cacheLoadingPromise.reject?.()
-      return res.code(404).send()
+      sendMapNotFound(res, mapID)
+    } else {
+      sendGziped(res, map)
     }
 
-    const result = {
-      imdf: map.imdf,
-      meta: { title: "TODO" }
-    }
-
-    const gziped = await gzip(Buffer.from(JSON.stringify(result)))
-
-    sendGziped(res, gziped)
-
-    ceche[mapID] = {
-      map: gziped,
-      __v: map.__v,
-      time: Date.now()
-    }
-
-    loadingPromise.resolve()
-    cacheLoadingPromise.resolve?.()
   })
 }
