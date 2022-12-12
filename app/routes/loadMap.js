@@ -10,12 +10,14 @@ function sendGziped(res, data) {
   res
     .header("Content-Type", "application/json")
     .header("Content-Encoding", "gzip")
+    .header("Cache-Control", "public, max-age=60, stale-if-error=86400")
     .send(data)
 }
 
 function sendMapNotFound(res, mapID) {
   res
     .code(404)
+    .header("Cache-Control", "public, max-age=60")
     .send(`Map with id ${mapID} not found`)
 }
 
